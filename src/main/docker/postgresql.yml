@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  postgresql:
+    container_name: socialX_postgresql
+    image: postgres:17.2
+    environment:
+      - POSTGRES_USER=socialX
+      - POSTGRES_PASSWORD=socialX@3006
+      - POSTGRES_DB=socialx
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    command: postgres -c max_connections=200 -c shared_buffers=256MB
+    ports:
+      - "5432:5432"

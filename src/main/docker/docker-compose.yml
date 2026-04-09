@@ -1,0 +1,25 @@
+name: socialX
+
+services:
+  postgresql:
+    extends:
+      file: ./postgresql.yml
+      service: postgresql
+#  minio:
+#    extends:
+#      file: ./minio.yml
+#      service: minio
+#  redis:
+#    extends:
+#      file: ./redis.yml
+#      service: redis
+#  zookeeper:
+#    extends:
+#      file: ./kafka.yml
+#      service: zookeeper
+#  kafka:
+#    extends:
+#      file: ./kafka.yml
+#      service: kafka
+#    depends_on:
+#      - zookeeper
