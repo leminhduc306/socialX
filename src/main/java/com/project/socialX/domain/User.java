@@ -34,4 +34,8 @@ public class User extends AbstractAuditingEntity<Long> {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     List<Role> roles = new ArrayList<>();
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @PrimaryKeyJoinColumn
+    private UserDetail userDetails;
 }

@@ -17,10 +17,8 @@ CREATE TABLE user_details (
     address TEXT,
     bio TEXT,
     avatar_url TEXT,
-    website VARCHAR(255),
     gender VARCHAR(20),
     date_of_birth DATE,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE posts (
