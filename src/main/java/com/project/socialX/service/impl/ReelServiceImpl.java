@@ -39,7 +39,7 @@ public class ReelServiceImpl implements ReelService {
     @Transactional
     public ReelResponse createReel(ReelRequest request, MultipartFile videoFile) {
         User currentUser = currentUser();
-        if (videoFile != null && !videoFile.isEmpty()) {
+        if (videoFile == null && videoFile.isEmpty()) {
             throw new BadRequestException("Bắt buộc phải có video để upload reels");
         }
         if(!videoFile.getContentType().startsWith("video")) {
