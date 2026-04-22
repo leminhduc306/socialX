@@ -18,4 +18,7 @@ public class PostResponse {
     List<PostMediaResponse> mediaList;
     Instant createdDate;
     Instant lastModifiedDate;
+    Long likeCount;
+    Long commentCount;
+    Boolean isLiked;
 }

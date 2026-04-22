@@ -11,6 +11,8 @@ import com.project.socialX.repository.UserRepository;
 import com.project.socialX.security.SecurityUtils;
 import com.project.socialX.service.PostService;
 import com.project.socialX.service.dto.Post.PostRequest;
+import com.project.socialX.repository.PostCommentRepository;
+import com.project.socialX.repository.PostLikeRepository;
 import com.project.socialX.service.dto.Post.PostResponse;
 import com.project.socialX.service.mapper.PostMapper;
 import com.project.socialX.web.rest.errors.BadRequestException;
@@ -30,6 +32,8 @@ public class PostServiceImpl implements PostService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final PostLikeRepository postLikeRepository;
+    private final PostCommentRepository postCommentRepository;
     private final PostMapper postMapper;
     private final MinioChannel minioChannel;
 
@@ -41,6 +45,25 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new BadRequestException("Unauthenticated"));
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadRequestException("User not found"));
+    }
+
+    private void setPostResponseStats(PostResponse response) {
+        if (response == null) return;
+        
+        long likeCount = postLikeRepository.countByPostId(response.getId());
+        long commentCount = postCommentRepository.countByPostId(response.getId());
+        
+        response.setLikeCount(likeCount);
+        response.setCommentCount(commentCount);
+
+        String currentEmail = SecurityUtils.getCurrentUserLogin().orElse(null);
+        if (currentEmail != null) {
+            userRepository.findByEmail(currentEmail).ifPresent(user -> {
+                response.setIsLiked(postLikeRepository.existsByPostIdAndUserId(response.getId(), user.getId()));
+            });
+        } else {
+            response.setIsLiked(false);
+        }
     }
 
     /**
@@ -80,6 +103,7 @@ public class PostServiceImpl implements PostService {
     public PostResponse createPost(PostRequest request, List<MultipartFile> mediaFiles) {
         User user = currentUser();
 
+
         // Khởi tạo Post
         Post post = Post.builder()
                 .user(user)
@@ -100,6 +124,7 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public PostResponse updatePost(Long postId, PostRequest request) {
         User user = currentUser();
+
 
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new BadRequestException("Post not found with id: " + postId));
@@ -132,16 +157,20 @@ public class PostServiceImpl implements PostService {
     public PostResponse getPostById(Long id) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new BadRequestException("Post not found with id: " + id));
-        return postMapper.toResponse(post);
+        PostResponse response = postMapper.toResponse(post);
+        setPostResponseStats(response);
+        return response;
     }
 
     @Override
     @Transactional(readOnly = true)
     public PagingResponse<PostResponse> getAllPosts(PagingRequest pagingRequest) {
         Page<Post> postPage = postRepository.findAll(pagingRequest.pageable());
-
-        // Map Page<Post> sang Page<PostResponse> (Mặc dù PagingResponse.from chỉ nhận Content của Page cũng chạy được)
-        Page<PostResponse> responsePage = postPage.map(postMapper::toResponse);
+        Page<PostResponse> responsePage = postPage.map(post -> {
+            PostResponse res = postMapper.toResponse(post);
+            setPostResponseStats(res);
+            return res;
+        });
         return PagingResponse.from(responsePage);
     }
 
@@ -149,7 +178,11 @@ public class PostServiceImpl implements PostService {
     @Transactional(readOnly = true)
     public PagingResponse<PostResponse> getUserPosts(Long userId, PagingRequest pagingRequest) {
         Page<Post> postPage = postRepository.findByUserId(userId, pagingRequest.pageable());
-        Page<PostResponse> responsePage = postPage.map(postMapper::toResponse);
+        Page<PostResponse> responsePage = postPage.map(post -> {
+            PostResponse res = postMapper.toResponse(post);
+            setPostResponseStats(res);
+            return res;
+        });
         return PagingResponse.from(responsePage);
     }
 

@@ -17,4 +17,7 @@ public class ReelResponse {
     String videoUrl;
     Instant createdDate;
     Instant lastModifiedDate;
+    Long likeCount;
+    Long commentCount;
+    Boolean isLiked;
 }

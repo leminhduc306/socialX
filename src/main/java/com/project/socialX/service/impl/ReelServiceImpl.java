@@ -4,6 +4,8 @@ import com.project.socialX.domain.User;
 import com.project.socialX.dto.page.PagingRequest;
 import com.project.socialX.dto.page.PagingResponse;
 import com.project.socialX.intergration.MinioChannel;
+import com.project.socialX.repository.ReelCommentRepository;
+import com.project.socialX.repository.ReelLikeRepository;
 import com.project.socialX.repository.ReelRepository;
 import com.project.socialX.repository.UserRepository;
 import com.project.socialX.security.SecurityUtils;
@@ -24,6 +26,8 @@ public class ReelServiceImpl implements ReelService {
 
     private final ReelRepository reelRepository;
     private final UserRepository userRepository;
+    private final ReelLikeRepository reelLikeRepository;
+    private final ReelCommentRepository reelCommentRepository;
     private final ReelMapper reelMapper;
     private final MinioChannel minioChannel;
 
@@ -33,6 +37,25 @@ public class ReelServiceImpl implements ReelService {
                 .orElseThrow(() -> new BadRequestException("Unauthenticated"));
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadRequestException("User not found"));
+    }
+
+    private void setReelResponseStats(ReelResponse response) {
+        if (response == null) return;
+        
+        long likeCount = reelLikeRepository.countByReelId(response.getId());
+        long commentCount = reelCommentRepository.countByReelId(response.getId());
+        
+        response.setLikeCount(likeCount);
+        response.setCommentCount(commentCount);
+
+        String currentEmail = SecurityUtils.getCurrentUserLogin().orElse(null);
+        if (currentEmail != null) {
+            userRepository.findByEmail(currentEmail).ifPresent(user -> {
+                response.setIsLiked(reelLikeRepository.existsByReelIdAndUserId(response.getId(), user.getId()));
+            });
+        } else {
+            response.setIsLiked(false);
+        }
     }
 
     @Override
@@ -60,7 +83,9 @@ public class ReelServiceImpl implements ReelService {
     public ReelResponse getReel(Long id) {
         Reel reel = reelRepository.findById(id)
                 .orElseThrow(() -> new BadRequestException("Không tìm thấy reel với id: " + id));
-        return reelMapper.toResponse(reel);
+        ReelResponse response = reelMapper.toResponse(reel);
+        setReelResponseStats(response);
+        return response;
     }
 
     @Override
@@ -100,9 +125,12 @@ public class ReelServiceImpl implements ReelService {
     @Override
     @Transactional(readOnly = true)
     public PagingResponse<ReelResponse> getUserReel(Long userId, PagingRequest pagingRequest) {
-        // Lưu ý: Đã sửa kiểu Generic từ PostResponse thành ReelResponse
         Page<Reel> reelPage = reelRepository.findByUserId(userId, pagingRequest.pageable());
-        Page<ReelResponse> responsePage = reelPage.map(reelMapper::toResponse);
+        Page<ReelResponse> responsePage = reelPage.map(reel -> {
+            ReelResponse res = reelMapper.toResponse(reel);
+            setReelResponseStats(res);
+            return res;
+        });
         return PagingResponse.from(responsePage);
     }
 
@@ -110,7 +138,11 @@ public class ReelServiceImpl implements ReelService {
     @Transactional(readOnly = true)
     public PagingResponse<ReelResponse> getAllReels(PagingRequest pagingRequest) {
         Page<Reel> reelPage = reelRepository.findAll(pagingRequest.pageable());
-        Page<ReelResponse> responsePage = reelPage.map(reelMapper::toResponse);
+        Page<ReelResponse> responsePage = reelPage.map(reel -> {
+            ReelResponse res = reelMapper.toResponse(reel);
+            setReelResponseStats(res);
+            return res;
+        });
         return PagingResponse.from(responsePage);
     }
 }

@@ -16,4 +16,5 @@ public interface ReelCommentRepository extends JpaRepository<ReelComment, Long> 
 
     // Lấy các phản hồi của một bình luận Reel
     List<ReelComment> findByParentCommentId(Long parentId);
+    long countByReelId(Long reelId);
 }
