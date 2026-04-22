@@ -27,4 +27,8 @@ public class UserDetailResponse {
 
     @JsonFormat(pattern = "yyyy-MM-dd")
     LocalDate dateOfBirth;
+
+    long followerCount;
+    long followingCount;
+    boolean isFollowing;
 }

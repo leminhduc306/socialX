@@ -4,6 +4,7 @@ import com.project.socialX.domain.User;
 import com.project.socialX.domain.UserDetail;
 import com.project.socialX.intergration.MinioChannel;
 import com.project.socialX.repository.UserDetailRepository;
+import com.project.socialX.repository.UserFollowRepository;
 import com.project.socialX.repository.UserRepository;
 import com.project.socialX.security.SecurityUtils;
 import com.project.socialX.service.UserDetailService;
@@ -22,6 +23,7 @@ public class UserDetailServiceImpl implements UserDetailService {
 
     private final UserDetailRepository userDetailRepository;
     private final UserRepository userRepository;
+    private final UserFollowRepository userFollowRepository;
     private final UserDetailMapper userDetailMapper;
     private final MinioChannel minioChannel;
 
@@ -49,6 +51,22 @@ public class UserDetailServiceImpl implements UserDetailService {
         return null;
     }
 
+    private void setUserDetailResponseStats(UserDetailResponse response, Long targetUserId) {
+        if (response == null) return;
+
+        response.setFollowerCount(userFollowRepository.countByFollowingId(targetUserId));
+        response.setFollowingCount(userFollowRepository.countByFollowerId(targetUserId));
+
+        String currentEmail = SecurityUtils.getCurrentUserLogin().orElse(null);
+        if (currentEmail != null) {
+            userRepository.findByEmail(currentEmail).ifPresent(user -> {
+                response.setFollowing(userFollowRepository.existsByFollowerIdAndFollowingId(user.getId(), targetUserId));
+            });
+        } else {
+            response.setFollowing(false);
+        }
+    }
+
     // ─── My Profile ───────────────────────────────────────────────────────────
 
     @Override
@@ -57,7 +75,9 @@ public class UserDetailServiceImpl implements UserDetailService {
         User user = currentUser();
         UserDetail detail = userDetailRepository.findById(user.getId())
                 .orElseThrow(() -> new BadRequestException("User detail not found"));
-        return userDetailMapper.toResponse(detail);
+        UserDetailResponse response = userDetailMapper.toResponse(detail);
+        setUserDetailResponseStats(response, user.getId());
+        return response;
     }
 
     @Override
@@ -76,7 +96,10 @@ public class UserDetailServiceImpl implements UserDetailService {
         String avatarUrl = uploadAvatar(avatar);
         if (avatarUrl != null) detail.setAvatarUrl(avatarUrl);
 
-        return userDetailMapper.toResponse(userDetailRepository.save(detail));
+        UserDetail saved = userDetailRepository.save(detail);
+        UserDetailResponse response = userDetailMapper.toResponse(saved);
+        setUserDetailResponseStats(response, userId);
+        return response;
     }
 
     @Override
@@ -93,7 +116,10 @@ public class UserDetailServiceImpl implements UserDetailService {
         String avatarUrl = uploadAvatar(avatar);
         if (avatarUrl != null) detail.setAvatarUrl(avatarUrl);
 
-        return userDetailMapper.toResponse(userDetailRepository.save(detail));
+        UserDetail saved = userDetailRepository.save(detail);
+        UserDetailResponse response = userDetailMapper.toResponse(saved);
+        setUserDetailResponseStats(response, userId);
+        return response;
     }
 
     // ─── Admin ────────────────────────────────────────────────────────────────
@@ -104,7 +130,9 @@ public class UserDetailServiceImpl implements UserDetailService {
         resolveUser(userId);
         UserDetail detail = userDetailRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException("User detail not found for userId: " + userId));
-        return userDetailMapper.toResponse(detail);
+        UserDetailResponse response = userDetailMapper.toResponse(detail);
+        setUserDetailResponseStats(response, userId);
+        return response;
     }
 
     @Override
@@ -123,7 +151,10 @@ public class UserDetailServiceImpl implements UserDetailService {
         String avatarUrl = uploadAvatar(avatar);
         if (avatarUrl != null) detail.setAvatarUrl(avatarUrl);
 
-        return userDetailMapper.toResponse(userDetailRepository.save(detail));
+        UserDetail saved = userDetailRepository.save(detail);
+        UserDetailResponse response = userDetailMapper.toResponse(saved);
+        setUserDetailResponseStats(response, userId);
+        return response;
     }
 
     @Override
@@ -139,6 +170,9 @@ public class UserDetailServiceImpl implements UserDetailService {
         String avatarUrl = uploadAvatar(avatar);
         if (avatarUrl != null) detail.setAvatarUrl(avatarUrl);
 
-        return userDetailMapper.toResponse(userDetailRepository.save(detail));
+        UserDetail saved = userDetailRepository.save(detail);
+        UserDetailResponse response = userDetailMapper.toResponse(saved);
+        setUserDetailResponseStats(response, userId);
+        return response;
     }
 }
