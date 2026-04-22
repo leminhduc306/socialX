@@ -3,9 +3,6 @@ package com.project.socialX.domain;
 import jakarta.persistence.*;
 import lombok.*;
 
-/**
- * @author LamND
- */
 @Entity
 @Table(name = "post_media")
 @Getter

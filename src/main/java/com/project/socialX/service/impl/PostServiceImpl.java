@@ -162,7 +162,7 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new BadRequestException("Post not found with id: " + postId));
 
         if (!post.getUser().getId().equals(user.getId())) {
-            throw new BadRequestException("You don't have permission to delete this post");
+            throw new BadRequestException("Bạn không có quyền xóa bài viết này");
         }
 
         postRepository.delete(post);

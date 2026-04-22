@@ -52,20 +52,37 @@ CREATE TABLE follows (
     PRIMARY KEY (follower_id, following_id)
 );
 
-CREATE TABLE comments (
+CREATE TABLE post_likes (
     id SERIAL PRIMARY KEY,
-    post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, post_id)
+);
+
+CREATE TABLE post_comments (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE likes (
+-- Dành riêng cho REEL
+CREATE TABLE reel_likes (
     id SERIAL PRIMARY KEY,
-    post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    reel_id INTEGER REFERENCES reels(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (post_id, user_id)
+    UNIQUE (user_id, reel_id)
+);
+
+CREATE TABLE reel_comments (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    reel_id INTEGER REFERENCES reels(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE conversations (
