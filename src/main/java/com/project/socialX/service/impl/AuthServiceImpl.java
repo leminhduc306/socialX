@@ -69,6 +69,7 @@ public class AuthServiceImpl implements AuthService {
             authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.email(), request.password())
             );
+//            return new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
         } catch (org.springframework.security.authentication.BadCredentialsException ex) {
             throw new BadRequestException("Tài khoản hoặc mật khẩu không đúng");
         }
