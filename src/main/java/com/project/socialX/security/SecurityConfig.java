@@ -81,6 +81,17 @@ public class SecurityConfig {
 
     @Bean
     @Order(2)
+    public SecurityFilterChain wsSecurityFilterChain(HttpSecurity http) throws Exception {
+        return http.securityMatcher(new AntPathRequestMatcher("/ws/**"))
+                .cors(withDefaults())
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .build();
+    }
+
+    @Bean
+    @Order(3)
     public SecurityFilterChain apiSecurityFilterChain(HttpSecurity httpSecurity) throws Exception {
         return httpSecurity
                 .cors(withDefaults())
