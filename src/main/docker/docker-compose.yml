@@ -9,10 +9,10 @@ services:
     extends:
       file: ./minio.yml
       service: minio
-#  redis:
-#    extends:
-#      file: ./redis.yml
-#      service: redis
+  redis:
+    extends:
+      file: ./redis.yml
+      service: redis
 #  zookeeper:
 #    extends:
 #      file: ./kafka.yml
@@ -23,3 +23,6 @@ services:
 #      service: kafka
 #    depends_on:
 #      - zookeeper
+
+volumes:
+  redis_data:

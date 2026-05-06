@@ -11,9 +11,12 @@ import com.project.socialX.service.AuthService;
 import com.project.socialX.web.rest.errors.BadRequestException;
 import com.project.socialX.service.dto.Auth.request.SignInRequest;
 import com.project.socialX.service.dto.Auth.request.TokenRefreshRequest;
+import com.project.socialX.service.dto.Auth.request.ForgotPasswordRequest;
+import com.project.socialX.service.dto.Auth.request.ResetPasswordRequest;
 import com.project.socialX.service.dto.Auth.response.AuthResponse;
 import com.project.socialX.service.dto.Auth.response.TokenRefreshResponse;
 import com.project.socialX.security.SecurityUtils;
+import com.project.socialX.service.MailService;
 import com.project.socialX.security.jwt.TokenProvider;
 import com.project.socialX.service.impl.RefreshTokenService;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -25,8 +28,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 
 import java.util.List;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +43,8 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final TokenProvider tokenProvider;
     private final RefreshTokenService refreshTokenService;
+    private final MailService mailService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Override
     @Transactional
@@ -122,6 +130,51 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new BadRequestException("Unauthenticated"));
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadRequestException("User not found"));
+        refreshTokenService.deleteByUser(user.getId());
+    }
+
+    @Override
+    public void forgotPassword(ForgotPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new BadRequestException("Email không tồn tại trong hệ thống."));
+
+        // 1. Tạo mã OTP 6 số
+        String otp = String.format("%06d", new Random().nextInt(999999));
+
+        // 2. Lưu vào Redis với TTL 5 phút
+        String redisKey = "otp:forgot_pwd:" + request.getEmail();
+        redisTemplate.opsForValue().set(redisKey, otp, 5, TimeUnit.MINUTES);
+
+        // 3. Gửi email
+        mailService.sendOtpEmail(request.getEmail(), otp);
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        String redisKey = "otp:forgot_pwd:" + request.getEmail();
+        Object cachedOtp = redisTemplate.opsForValue().get(redisKey);
+
+        // 1. Kiểm tra OTP có tồn tại không (chưa hết hạn)
+        if (cachedOtp == null) {
+            throw new BadRequestException("Mã OTP đã hết hạn hoặc không hợp lệ.");
+        }
+
+        // 2. Kiểm tra OTP có khớp không
+        if (!cachedOtp.toString().equals(request.getOtp())) {
+            throw new BadRequestException("Mã OTP không chính xác.");
+        }
+
+        // 3. Đổi mật khẩu
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new BadRequestException("User không tồn tại."));
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        // 4. Xóa OTP khỏi Redis để không dùng lại được
+        redisTemplate.delete(redisKey);
+        
+        // (Tuỳ chọn) Đăng xuất mọi thiết bị bằng cách xoá tất cả Refresh Token
         refreshTokenService.deleteByUser(user.getId());
     }
 }
