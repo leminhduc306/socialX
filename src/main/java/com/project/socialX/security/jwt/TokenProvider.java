@@ -60,6 +60,15 @@ public class TokenProvider {
                 .compact();
     }
 
+    public String createTokenFromEmail(String email, String authorities) {
+        return Jwts.builder()
+                .setSubject(email)
+                .claim("auth", authorities)
+                .signWith(key, SignatureAlgorithm.HS512)
+                .setExpiration(Date.from(Instant.now().plus(jwtExpirationInSeconds, ChronoUnit.SECONDS)))
+                .compact();
+    }
+
     public Authentication getAuthentication(String token) {
         final var claims = jwtParser.parseClaimsJws(token).getBody();
         final var authoritiesStr = claims.get("auth") != null ? claims.get("auth").toString() : "";

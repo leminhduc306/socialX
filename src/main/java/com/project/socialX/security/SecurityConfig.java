@@ -69,7 +69,8 @@ public class SecurityConfig {
         return http.securityMatcher(
                         new OrRequestMatcher(
                                 new AntPathRequestMatcher("/api/auth/sign-in/**"),
-                                new AntPathRequestMatcher("/api/auth/sign-up/**")
+                                new AntPathRequestMatcher("/api/auth/sign-up/**"),
+                                new AntPathRequestMatcher("/api/auth/refresh-token/**")
                         )
                 )
                 .cors(withDefaults())
