@@ -13,6 +13,7 @@ import com.project.socialX.service.dto.Auth.request.SignInRequest;
 import com.project.socialX.service.dto.Auth.request.TokenRefreshRequest;
 import com.project.socialX.service.dto.Auth.request.ForgotPasswordRequest;
 import com.project.socialX.service.dto.Auth.request.ResetPasswordRequest;
+import com.project.socialX.service.dto.Auth.request.SignOutRequest;
 import com.project.socialX.service.dto.Auth.response.AuthResponse;
 import com.project.socialX.service.dto.Auth.response.TokenRefreshResponse;
 import com.project.socialX.security.SecurityUtils;
@@ -125,12 +126,8 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void signOut() {
-        String email = SecurityUtils.getCurrentUserLogin()
-                .orElseThrow(() -> new BadRequestException("Unauthenticated"));
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BadRequestException("User not found"));
-        refreshTokenService.deleteByUser(user.getId());
+    public void signOut(SignOutRequest request) {
+        refreshTokenService.deleteByToken(request.getRefreshToken());
     }
 
     @Override

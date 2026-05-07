@@ -5,6 +5,7 @@ import com.project.socialX.service.dto.Auth.request.SignInRequest;
 import com.project.socialX.service.dto.Auth.request.TokenRefreshRequest;
 import com.project.socialX.service.dto.Auth.request.ForgotPasswordRequest;
 import com.project.socialX.service.dto.Auth.request.ResetPasswordRequest;
+import com.project.socialX.service.dto.Auth.request.SignOutRequest;
 import com.project.socialX.service.dto.Auth.response.SignUpResponse;
 import com.project.socialX.service.dto.Auth.response.AuthResponse;
 import com.project.socialX.service.dto.Auth.response.TokenRefreshResponse;
@@ -39,8 +40,8 @@ public class AuthController {
     }
 
     @PostMapping("/sign-out")
-    public ResponseEntity<Response<Void>> signOut() {
-        authService.signOut();
+    public ResponseEntity<Response<Void>> signOut(@Valid @RequestBody SignOutRequest request) {
+        authService.signOut(request);
         return ResponseEntity.ok(Response.ok(null));
     }
 
