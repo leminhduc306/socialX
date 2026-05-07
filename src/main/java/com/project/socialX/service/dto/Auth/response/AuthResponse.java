@@ -1,5 +1,6 @@
 package com.project.socialX.service.dto.Auth.response;
 
+import com.project.socialX.service.dto.User.UserDetailResponse;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -11,4 +12,5 @@ public class AuthResponse {
     private String email;
     private String accessToken;
     private String refreshToken;
+    private UserDetailResponse userDetail;
 }

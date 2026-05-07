@@ -14,12 +14,14 @@ import com.project.socialX.service.dto.Auth.request.TokenRefreshRequest;
 import com.project.socialX.service.dto.Auth.request.ForgotPasswordRequest;
 import com.project.socialX.service.dto.Auth.request.ResetPasswordRequest;
 import com.project.socialX.service.dto.Auth.request.SignOutRequest;
+import com.project.socialX.service.dto.Auth.request.SignOutRequest;
 import com.project.socialX.service.dto.Auth.response.AuthResponse;
 import com.project.socialX.service.dto.Auth.response.TokenRefreshResponse;
 import com.project.socialX.security.SecurityUtils;
 import com.project.socialX.service.MailService;
 import com.project.socialX.security.jwt.TokenProvider;
 import com.project.socialX.service.impl.RefreshTokenService;
+import com.project.socialX.service.mapper.UserDetailMapper;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -46,6 +48,7 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshTokenService refreshTokenService;
     private final MailService mailService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final UserDetailMapper userDetailMapper;
 
     @Override
     @Transactional
@@ -53,14 +56,13 @@ public class AuthServiceImpl implements AuthService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BadRequestException("Email '" + request.getEmail() + "' đã được sử dụng");
         }
-        if(userRepository.existsByUsername(request.getUsername())) {
+        if (userRepository.existsByUsername(request.getUsername())) {
             throw new BadRequestException("Username '" + request.getUsername() + "' đã được sử dụng");
         }
 
         Role userRole = roleRepository.findByName("USER")
                 .orElseGet(() -> roleRepository.save(
-                        Role.builder().name("USER").build()
-                ));
+                        Role.builder().name("USER").build()));
 
         User user = User.builder()
                 .username(request.getUsername())
@@ -82,8 +84,7 @@ public class AuthServiceImpl implements AuthService {
         Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.email(), request.password())
-            );
+                    new UsernamePasswordAuthenticationToken(request.email(), request.password()));
         } catch (org.springframework.security.authentication.BadCredentialsException ex) {
             throw new BadRequestException("Tài khoản hoặc mật khẩu không đúng");
         }
@@ -101,6 +102,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(user.getEmail())
                 .accessToken(jwt)
                 .refreshToken(refreshToken.getToken())
+                .userDetail(user.getUserDetails() != null ? userDetailMapper.toResponse(user.getUserDetails()) : null)
                 .build();
     }
 
@@ -170,7 +172,7 @@ public class AuthServiceImpl implements AuthService {
 
         // 4. Xóa OTP khỏi Redis để không dùng lại được
         redisTemplate.delete(redisKey);
-        
+
         // (Tuỳ chọn) Đăng xuất mọi thiết bị bằng cách xoá tất cả Refresh Token
         refreshTokenService.deleteByUser(user.getId());
     }
