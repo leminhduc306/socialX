@@ -41,14 +41,16 @@ public class LikeServiceImpl implements LikeService {
         if (existingLike.isPresent()) {
             postLikeRepository.delete(existingLike.get());
             liked = false;
+            post.setLikesCount(Math.max(0, post.getLikesCount() - 1));
         } else {
             PostLike newLike = PostLike.builder().post(post).user(user).build();
             postLikeRepository.save(newLike);
             liked = true;
+            post.setLikesCount(post.getLikesCount() + 1);
         }
 
-        long count = postLikeRepository.countByPostId(postId);
-        return LikeStatusResponse.builder().liked(liked).likeCount(count).build();
+        postRepository.save(post);
+        return LikeStatusResponse.builder().liked(liked).likeCount(post.getLikesCount()).build();
     }
 
     @Override

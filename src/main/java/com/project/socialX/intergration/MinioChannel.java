@@ -5,6 +5,7 @@ import io.minio.*;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,6 +20,9 @@ public class MinioChannel {
     private static final String BUCKET = "resources";
     private final MinioClient minioClient;
 
+    @Value("${integration.minio.url}")
+    private String url;
+
     @PostConstruct
     private void init() {
         createBucket(BUCKET);
@@ -29,15 +33,13 @@ public class MinioChannel {
             final var found = minioClient.bucketExists(
                     BucketExistsArgs.builder()
                             .bucket(name)
-                            .build()
-            );
+                            .build());
 
             if (!found) {
                 minioClient.makeBucket(
                         MakeBucketArgs.builder()
                                 .bucket(name)
-                                .build()
-                );
+                                .build());
 
                 // Thiết lập bucket là public bằng cách set policy
                 final var policy = """
@@ -54,8 +56,7 @@ public class MinioChannel {
                             }
                         """.formatted(name);
                 minioClient.setBucketPolicy(
-                        SetBucketPolicyArgs.builder().bucket(name).config(policy).build()
-                );
+                        SetBucketPolicyArgs.builder().bucket(name).config(policy).build());
 
                 log.info("Đã tạo mới và thiết lập quyền public cho bucket: {}", name);
             } else {
@@ -70,26 +71,20 @@ public class MinioChannel {
 
     public String upload(@NonNull final MultipartFile file) {
         log.info("Bucket: {}, file size: {}", BUCKET, file.getSize());
-        final var fileName = file.getOriginalFilename();
+        final var fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
 
         try {
             minioClient.putObject(
                     PutObjectArgs.builder()
                             .bucket(BUCKET)
                             .object(fileName)
-                            .contentType(Objects.isNull(file.getContentType()) ? "image/png; image/jpg" : file.getContentType())
+                            .contentType(Objects.isNull(file.getContentType()) ? "image/png; image/jpg"
+                                    : file.getContentType())
                             .stream(file.getInputStream(), file.getSize(), -1)
-                            .build()
-            );
+                            .build());
 
-            // 2. Lấy link public trực tiếp trả về (đã gộp vào trong try-catch)
-            return minioClient.getPresignedObjectUrl(
-                    io.minio.GetPresignedObjectUrlArgs.builder()
-                            .method(io.minio.http.Method.GET)
-                            .bucket(BUCKET)
-                            .object(fileName)
-                            .build()
-            );
+            // Vì bucket đã là public, ta trả về link trực tiếp không hết hạn
+            return String.format("%s/%s/%s", url, BUCKET, fileName);
 
         } catch (Exception ex) {
             log.error("Lỗi khi lưu file lên MinIO \n {} ", ex.getMessage());
@@ -113,7 +108,8 @@ public class MinioChannel {
 
     public InputStream getFileStream(String bucket, String name) {
         try {
-            // Không dùng try-with-resources ở đây, vì luồng này phải mở để truyền thẳng về Frontend
+            // Không dùng try-with-resources ở đây, vì luồng này phải mở để truyền thẳng về
+            // Frontend
             return minioClient.getObject(GetObjectArgs.builder()
                     .bucket(bucket)
                     .object(name)

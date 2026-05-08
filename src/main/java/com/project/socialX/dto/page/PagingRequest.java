@@ -18,23 +18,23 @@ public class PagingRequest {
 
     private int page = 1;
     private int pageSize = 10;
-    private Map<String,String> orders = new HashMap<>();
+    private Map<String, String> orders = new HashMap<>();
 
-    public Pageable pageable(){
-        if(CollectionUtils.isEmpty(orders)){
-            return PageRequest.of(page-1,pageSize);
-        }
-        else{
+    public Pageable pageable() {
+        if (CollectionUtils.isEmpty(orders)) {
+            return PageRequest.of(page - 1, pageSize);
+        } else {
             Sort sortable = sortable(orders);
-            return PageRequest.of(page-1,pageSize,sortable);
+            return PageRequest.of(page - 1, pageSize, sortable);
         }
     }
 
-    public Sort sortable(Map<String,String> orders){
+    public Sort sortable(Map<String, String> orders) {
         List<Sort.Order> sortableList = new ArrayList<>();
-        orders.forEach((key,value) -> {
-            Sort.Direction direction = Sort.Direction.DESC.name().equals(key) ? Sort.Direction.DESC : Sort.Direction.ASC;
-            Sort.Order order = new Sort.Order(direction,key);
+        orders.forEach((key, value) -> {
+            Sort.Direction direction = Sort.Direction.DESC.name().equals(key) ? Sort.Direction.DESC
+                    : Sort.Direction.ASC;
+            Sort.Order order = new Sort.Order(direction, key);
             sortableList.add(order);
         });
         return Sort.by(sortableList);

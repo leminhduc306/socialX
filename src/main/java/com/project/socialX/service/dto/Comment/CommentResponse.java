@@ -17,6 +17,7 @@ public class CommentResponse {
     String content;
     PostUserSummaryResponse user;
     Long parentId;
+    Long replyCount;
     Instant createdDate;
     Instant lastModifiedDate;
 }

@@ -18,6 +18,8 @@ import com.project.socialX.service.mapper.PostMapper;
 import com.project.socialX.web.rest.errors.BadRequestException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -47,14 +49,11 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new BadRequestException("User not found"));
     }
 
-    private void setPostResponseStats(PostResponse response) {
-        if (response == null) return;
+    private void setPostResponseStats(PostResponse response, Post post) {
+        if (response == null || post == null) return;
         
-        long likeCount = postLikeRepository.countByPostId(response.getId());
-        long commentCount = postCommentRepository.countByPostId(response.getId());
-        
-        response.setLikeCount(likeCount);
-        response.setCommentCount(commentCount);
+        response.setLikeCount(post.getLikesCount());
+        response.setCommentCount(post.getCommentCount());
 
         String currentEmail = SecurityUtils.getCurrentUserLogin().orElse(null);
         if (currentEmail != null) {
@@ -158,7 +157,7 @@ public class PostServiceImpl implements PostService {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new BadRequestException("Post not found with id: " + id));
         PostResponse response = postMapper.toResponse(post);
-        setPostResponseStats(response);
+        setPostResponseStats(response, post);
         return response;
     }
 
@@ -168,7 +167,7 @@ public class PostServiceImpl implements PostService {
         Page<Post> postPage = postRepository.findAll(pagingRequest.pageable());
         Page<PostResponse> responsePage = postPage.map(post -> {
             PostResponse res = postMapper.toResponse(post);
-            setPostResponseStats(res);
+            setPostResponseStats(res, post);
             return res;
         });
         return PagingResponse.from(responsePage);
@@ -180,10 +179,28 @@ public class PostServiceImpl implements PostService {
         Page<Post> postPage = postRepository.findByUserId(userId, pagingRequest.pageable());
         Page<PostResponse> responsePage = postPage.map(post -> {
             PostResponse res = postMapper.toResponse(post);
-            setPostResponseStats(res);
+            setPostResponseStats(res, post);
             return res;
         });
         return PagingResponse.from(responsePage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PagingResponse<PostResponse> getFeed(Long lastId, PagingRequest pagingRequest) {
+        User user = currentUser();
+        Pageable pageable = pagingRequest.pageable();
+        List<Post> posts = postRepository.findFeedCursor(user.getId(), lastId, pageable);
+
+        List<PostResponse> responses = posts.stream().map(post -> {
+            PostResponse res = postMapper.toResponse(post);
+            setPostResponseStats(res, post);
+            return res;
+        }).toList();
+
+        Page<PostResponse> page = new PageImpl<>(responses, pageable, responses.size());
+
+        return PagingResponse.from(page);
     }
 
     @Override

@@ -58,6 +58,11 @@ public class CommentServiceImpl implements CommentService {
         }
 
         PostComment saved = postCommentRepository.save(postComment);
+
+        // Cập nhật số lượng comment của bài viết
+        post.setCommentCount(post.getCommentCount() + 1);
+        postRepository.save(post);
+
         return commentMapper.toResponse(saved);
     }
 
@@ -90,14 +95,23 @@ public class CommentServiceImpl implements CommentService {
             throw new BadRequestException("Bạn không được phép xóa bình luận này");
         }
 
+        Post post = postComment.getPost();
         postCommentRepository.delete(postComment);
+        
+        // Giảm số lượng comment
+        post.setCommentCount(Math.max(0, post.getCommentCount() - 1));
+        postRepository.save(post);
     }
 
     @Override
     @Transactional(readOnly = true)
     public PagingResponse<CommentResponse> getCommentsByPost(Long postId, PagingRequest pagingRequest) {
         Page<PostComment> commentPage = postCommentRepository.findByPostIdAndParentCommentIsNull(postId, pagingRequest.pageable());
-        Page<CommentResponse> responsePage = commentPage.map(commentMapper::toResponse);
+        Page<CommentResponse> responsePage = commentPage.map(comment -> {
+            CommentResponse res = commentMapper.toResponse(comment);
+            res.setReplyCount((long) postCommentRepository.findByParentCommentId(comment.getId()).size());
+            return res;
+        });
         return PagingResponse.from(responsePage);
     }
 
@@ -105,6 +119,10 @@ public class CommentServiceImpl implements CommentService {
     @Transactional(readOnly = true)
     public List<CommentResponse> getReplies(Long commentId) {
         List<PostComment> replies = postCommentRepository.findByParentCommentId(commentId);
-        return replies.stream().map(commentMapper::toResponse).collect(Collectors.toList());
+        return replies.stream().map(reply -> {
+            CommentResponse res = commentMapper.toResponse(reply);
+            res.setReplyCount((long) postCommentRepository.findByParentCommentId(reply.getId()).size());
+            return res;
+        }).collect(Collectors.toList());
     }
 }

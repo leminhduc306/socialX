@@ -19,6 +19,8 @@ public interface PostService {
     PagingResponse<PostResponse> getAllPosts(PagingRequest pagingRequest);
 
     PagingResponse<PostResponse> getUserPosts(Long userId, PagingRequest pagingRequest);
+    
+    PagingResponse<PostResponse> getFeed(Long lastId, PagingRequest pagingRequest);
 
     void deletePost(Long postId);
 }

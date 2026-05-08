@@ -55,6 +55,13 @@ public class PostController {
         return ResponseEntity.ok(Response.ok(postService.getUserPosts(userId, pagingRequest)));
     }
 
+    @GetMapping("/feed")
+    public ResponseEntity<Response<PagingResponse<PostResponse>>> getFeed(
+            @RequestParam(required = false) Long lastId,
+            @ModelAttribute PagingRequest pagingRequest) {
+        return ResponseEntity.ok(Response.ok(postService.getFeed(lastId, pagingRequest)));
+    }
+
     @DeleteMapping("/{postId}")
     public ResponseEntity<Response<Void>> deletePost(@PathVariable Long postId) {
         postService.deletePost(postId);
