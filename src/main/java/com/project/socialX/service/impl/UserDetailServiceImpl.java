@@ -43,7 +43,10 @@ public class UserDetailServiceImpl implements UserDetailService {
                 .orElseThrow(() -> new BadRequestException("User not found with id: " + userId));
     }
 
-    /** Upload avatar lên MinIO nếu file hợp lệ, trả về public URL. Trả null nếu không có file. */
+    /**
+     * Upload avatar lên MinIO nếu file hợp lệ, trả về public URL. Trả null nếu
+     * không có file.
+     */
     private String uploadAvatar(MultipartFile avatar) {
         if (avatar != null && !avatar.isEmpty()) {
             return minioChannel.upload(avatar);
@@ -52,7 +55,8 @@ public class UserDetailServiceImpl implements UserDetailService {
     }
 
     private void setUserDetailResponseStats(UserDetailResponse response, Long targetUserId) {
-        if (response == null) return;
+        if (response == null)
+            return;
 
         response.setFollowerCount(userFollowRepository.countByFollowingId(targetUserId));
         response.setFollowingCount(userFollowRepository.countByFollowerId(targetUserId));
@@ -60,7 +64,8 @@ public class UserDetailServiceImpl implements UserDetailService {
         String currentEmail = SecurityUtils.getCurrentUserLogin().orElse(null);
         if (currentEmail != null) {
             userRepository.findByEmail(currentEmail).ifPresent(user -> {
-                response.setFollowing(userFollowRepository.existsByFollowerIdAndFollowingId(user.getId(), targetUserId));
+                response.setFollowing(
+                        userFollowRepository.existsByFollowerIdAndFollowingId(user.getId(), targetUserId));
             });
         } else {
             response.setFollowing(false);
@@ -94,7 +99,8 @@ public class UserDetailServiceImpl implements UserDetailService {
         detail.setUser(user);
 
         String avatarUrl = uploadAvatar(avatar);
-        if (avatarUrl != null) detail.setAvatarUrl(avatarUrl);
+        if (avatarUrl != null)
+            detail.setAvatarUrl(avatarUrl);
 
         UserDetail saved = userDetailRepository.save(detail);
         UserDetailResponse response = userDetailMapper.toResponse(saved);
@@ -114,7 +120,8 @@ public class UserDetailServiceImpl implements UserDetailService {
         userDetailMapper.partialUpdate(request, detail);
 
         String avatarUrl = uploadAvatar(avatar);
-        if (avatarUrl != null) detail.setAvatarUrl(avatarUrl);
+        if (avatarUrl != null)
+            detail.setAvatarUrl(avatarUrl);
 
         UserDetail saved = userDetailRepository.save(detail);
         UserDetailResponse response = userDetailMapper.toResponse(saved);
@@ -149,7 +156,8 @@ public class UserDetailServiceImpl implements UserDetailService {
         detail.setUser(user);
 
         String avatarUrl = uploadAvatar(avatar);
-        if (avatarUrl != null) detail.setAvatarUrl(avatarUrl);
+        if (avatarUrl != null)
+            detail.setAvatarUrl(avatarUrl);
 
         UserDetail saved = userDetailRepository.save(detail);
         UserDetailResponse response = userDetailMapper.toResponse(saved);
@@ -168,7 +176,8 @@ public class UserDetailServiceImpl implements UserDetailService {
         userDetailMapper.partialUpdate(request, detail);
 
         String avatarUrl = uploadAvatar(avatar);
-        if (avatarUrl != null) detail.setAvatarUrl(avatarUrl);
+        if (avatarUrl != null)
+            detail.setAvatarUrl(avatarUrl);
 
         UserDetail saved = userDetailRepository.save(detail);
         UserDetailResponse response = userDetailMapper.toResponse(saved);
