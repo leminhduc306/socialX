@@ -66,13 +66,13 @@ public class SecurityUtils {
         return null;
     }
 
-    public static void addCookie(HttpServletResponse response, String name, String value, int maxAge) {
-        final var refreshTokenCookie = new Cookie(name, value);
-        refreshTokenCookie.setHttpOnly(true);
-        refreshTokenCookie.setSecure(true);
-        refreshTokenCookie.setPath("/**");
-        refreshTokenCookie.setMaxAge(maxAge); // Seconds
-        response.addCookie(refreshTokenCookie);
-    }
+//    public static void addCookie(HttpServletResponse response, String name, String value, int maxAge) {
+//        final var refreshTokenCookie = new Cookie(name, value);
+//        refreshTokenCookie.setHttpOnly(true);
+//        refreshTokenCookie.setSecure(true);
+//        refreshTokenCookie.setPath("/**");
+//        refreshTokenCookie.setMaxAge(maxAge); // Seconds
+//        response.addCookie(refreshTokenCookie);
+//    }
 
 }

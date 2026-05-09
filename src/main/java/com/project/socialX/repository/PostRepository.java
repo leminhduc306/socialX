@@ -21,4 +21,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("SELECT p FROM Post p WHERE (p.user.id IN (SELECT f.following.id FROM UserFollow f WHERE f.follower.id = :userId) OR p.user.id = :userId) " +
            "AND (:lastId IS NULL OR p.id < :lastId) ORDER BY p.id DESC")
     List<Post> findFeedCursor(@Param("userId") Long userId, @Param("lastId") Long lastId, Pageable pageable);
+
+    int countByUserId(Long userId);
 }

@@ -30,5 +30,6 @@ public class UserDetailResponse {
 
     long followerCount;
     long followingCount;
+    long postCount;
     boolean isFollowing;
 }

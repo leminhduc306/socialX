@@ -6,6 +6,7 @@ import com.project.socialX.intergration.MinioChannel;
 import com.project.socialX.repository.UserDetailRepository;
 import com.project.socialX.repository.UserFollowRepository;
 import com.project.socialX.repository.UserRepository;
+import com.project.socialX.repository.PostRepository;
 import com.project.socialX.security.SecurityUtils;
 import com.project.socialX.service.UserDetailService;
 import com.project.socialX.service.dto.User.UserDetailRequest;
@@ -25,11 +26,11 @@ public class UserDetailServiceImpl implements UserDetailService {
     private final UserRepository userRepository;
     private final UserFollowRepository userFollowRepository;
     private final UserDetailMapper userDetailMapper;
+    private final PostRepository postRepository;
     private final MinioChannel minioChannel;
 
     // ─── helpers ──────────────────────────────────────────────────────────────
 
-    /** Lấy User entity từ email trong Security Context. */
     private User currentUser() {
         String email = SecurityUtils.getCurrentUserLogin()
                 .orElseThrow(() -> new BadRequestException("Unauthenticated"));
@@ -60,6 +61,7 @@ public class UserDetailServiceImpl implements UserDetailService {
 
         response.setFollowerCount(userFollowRepository.countByFollowingId(targetUserId));
         response.setFollowingCount(userFollowRepository.countByFollowerId(targetUserId));
+        response.setPostCount(postRepository.countByUserId(targetUserId));
 
         String currentEmail = SecurityUtils.getCurrentUserLogin().orElse(null);
         if (currentEmail != null) {
