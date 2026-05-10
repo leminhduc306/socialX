@@ -1,9 +1,11 @@
 package com.project.socialX.web.rest.impl;
 
 import com.project.socialX.dto.response.Response;
+import com.project.socialX.dto.page.PagingResponse;
 import com.project.socialX.service.UserDetailService;
 import com.project.socialX.service.dto.User.UserDetailRequest;
 import com.project.socialX.service.dto.User.UserDetailResponse;
+import com.project.socialX.service.dto.User.UserFilterRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -19,6 +21,40 @@ public class UserDetailController {
     private final UserDetailService userDetailService;
 
     // ─── My Profile ───────────────────────────────────────────────────────────
+
+    @PostMapping("/api/users/search")
+    public ResponseEntity<Response<PagingResponse<UserDetailResponse>>> searchUsers(
+            @RequestBody UserFilterRequest filter) {
+        return ResponseEntity.ok(Response.ok(userDetailService.searchUsers(filter)));
+    }
+
+    @GetMapping("/api/users/search-history")
+    public ResponseEntity<Response<PagingResponse<UserDetailResponse>>> getSearchHistory() {
+        return ResponseEntity.ok(Response.ok(userDetailService.getSearchHistory()));
+    }
+
+    @PostMapping("/api/users/search-history/{targetId}")
+    public ResponseEntity<Response<Void>> saveSearchHistory(@PathVariable Long targetId) {
+        userDetailService.saveSearchHistory(targetId);
+        return ResponseEntity.ok(Response.ok(null));
+    }
+
+    @DeleteMapping("/api/users/search-history/{targetId}")
+    public ResponseEntity<Response<Void>> deleteSearchHistory(@PathVariable Long targetId) {
+        userDetailService.deleteSearchHistory(targetId);
+        return ResponseEntity.ok(Response.ok(null));
+    }
+
+    @DeleteMapping("/api/users/search-history")
+    public ResponseEntity<Response<Void>> clearSearchHistory() {
+        userDetailService.clearSearchHistory();
+        return ResponseEntity.ok(Response.ok(null));
+    }
+
+    @GetMapping("/api/users/profile/{username}")
+    public ResponseEntity<Response<UserDetailResponse>> getUserDetailByUsername(@PathVariable String username) {
+        return ResponseEntity.ok(Response.ok(userDetailService.getUserDetailByUsername(username)));
+    }
 
     @GetMapping("/api/user-details")
     public ResponseEntity<Response<UserDetailResponse>> getMyUserDetail() {

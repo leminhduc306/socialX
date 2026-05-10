@@ -10,6 +10,7 @@ public interface UserDetailMapper {
 
     UserDetail toEntity(UserDetailRequest request);
 
+    @Mapping(source = "user.username", target = "username")
     UserDetailResponse toResponse(UserDetail entity);
 
     @BeanMapping(

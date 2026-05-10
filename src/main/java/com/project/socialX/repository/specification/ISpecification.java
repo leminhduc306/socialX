@@ -1,4 +1,4 @@
-package com.project.socialX.web.rest.specification;
+package com.project.socialX.repository.specification;
 
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;

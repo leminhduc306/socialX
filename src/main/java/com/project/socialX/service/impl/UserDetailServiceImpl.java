@@ -7,13 +7,18 @@ import com.project.socialX.repository.UserDetailRepository;
 import com.project.socialX.repository.UserFollowRepository;
 import com.project.socialX.repository.UserRepository;
 import com.project.socialX.repository.PostRepository;
+import com.project.socialX.repository.SearchHistoryRepository;
+import com.project.socialX.dto.page.PagingResponse;
 import com.project.socialX.security.SecurityUtils;
 import com.project.socialX.service.UserDetailService;
 import com.project.socialX.service.dto.User.UserDetailRequest;
 import com.project.socialX.service.dto.User.UserDetailResponse;
+import com.project.socialX.service.dto.User.UserFilterRequest;
 import com.project.socialX.service.mapper.UserDetailMapper;
 import com.project.socialX.web.rest.errors.BadRequestException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,6 +32,7 @@ public class UserDetailServiceImpl implements UserDetailService {
     private final UserFollowRepository userFollowRepository;
     private final UserDetailMapper userDetailMapper;
     private final PostRepository postRepository;
+    private final SearchHistoryRepository searchHistoryRepository;
     private final MinioChannel minioChannel;
 
     // ─── helpers ──────────────────────────────────────────────────────────────
@@ -111,6 +117,18 @@ public class UserDetailServiceImpl implements UserDetailService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public UserDetailResponse getUserDetailByUsername(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new BadRequestException("User not found with username: " + username));
+        UserDetail detail = userDetailRepository.findById(user.getId())
+                .orElseThrow(() -> new BadRequestException("User detail not found"));
+        UserDetailResponse response = userDetailMapper.toResponse(detail);
+        setUserDetailResponseStats(response, user.getId());
+        return response;
+    }
+
+    @Override
     @Transactional
     public UserDetailResponse updateMyUserDetail(UserDetailRequest request, MultipartFile avatar) {
         User user = currentUser();
@@ -185,5 +203,80 @@ public class UserDetailServiceImpl implements UserDetailService {
         UserDetailResponse response = userDetailMapper.toResponse(saved);
         setUserDetailResponseStats(response, userId);
         return response;
+    }
+
+    // ─── Search & History ─────────────────────────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public PagingResponse<UserDetailResponse> searchUsers(UserFilterRequest filter) {
+        if (filter == null) {
+            return PagingResponse.from(Page.empty());
+        }
+
+        User current = currentUser();
+        filter.setExcludedId(current.getId());
+
+        final Page<UserDetailResponse> users = userRepository
+                .findAll(filter.specification(), filter.getPaging().pageable())
+                .map(user -> {
+                    if (user.getUserDetails() == null)
+                        return null;
+                    UserDetailResponse res = userDetailMapper.toResponse(user.getUserDetails());
+                    setUserDetailResponseStats(res, user.getId());
+                    return res;
+                });
+        return PagingResponse.from(users);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PagingResponse<UserDetailResponse> getSearchHistory() {
+        User user = currentUser();
+        final Page<UserDetailResponse> history = searchHistoryRepository
+                .findByOwnerIdOrderBySearchTimeDesc(user.getId(), PageRequest.of(0, 15))
+                .map(item -> {
+                    User target = item.getTarget();
+                    if (target == null || target.getUserDetails() == null)
+                        return null;
+                    UserDetailResponse res = userDetailMapper.toResponse(target.getUserDetails());
+                    setUserDetailResponseStats(res, target.getId());
+                    return res;
+                });
+        return PagingResponse.from(history);
+    }
+
+    @Override
+    @Transactional
+    public void saveSearchHistory(Long targetId) {
+        User owner = currentUser();
+        User target = resolveUser(targetId);
+        if (owner.getId().equals(targetId))
+            return;
+
+        searchHistoryRepository.findByOwnerAndTarget(owner, target)
+                .ifPresentOrElse(
+                        history -> history.setSearchTime(java.time.LocalDateTime.now()),
+                        () -> searchHistoryRepository.save(com.project.socialX.domain.SearchHistory.builder()
+                                .owner(owner)
+                                .target(target)
+                                .searchTime(java.time.LocalDateTime.now())
+                                .build()));
+    }
+
+    @Override
+    @Transactional
+    public void deleteSearchHistory(Long targetId) {
+        User owner = currentUser();
+        User target = resolveUser(targetId);
+        searchHistoryRepository.findByOwnerAndTarget(owner, target)
+                .ifPresent(searchHistoryRepository::delete);
+    }
+
+    @Override
+    @Transactional
+    public void clearSearchHistory() {
+        User user = currentUser();
+        searchHistoryRepository.deleteByOwnerId(user.getId());
     }
 }

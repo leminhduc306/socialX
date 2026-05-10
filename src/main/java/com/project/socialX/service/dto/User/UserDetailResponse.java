@@ -19,6 +19,7 @@ import java.time.LocalDate;
 public class UserDetailResponse {
 
     Long id;
+    String username;
     String phoneNumber;
     String address;
     String bio;

@@ -29,7 +29,6 @@ public class MessageController {
         return ResponseEntity.ok(Response.ok(chatService.sendMediaMessage(conversationId, recipientId, file, type)));
     }
 
-    // Lịch sử tin nhắn (phân trang)
     @GetMapping("/conversation/{conversationId}")
     public ResponseEntity<Response<PagingResponse<MessageResponse>>> getMessages(
             @PathVariable Long conversationId,
