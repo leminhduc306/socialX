@@ -36,6 +36,14 @@ public class ConversationController {
                 .body(Response.created(conversationService.createGroupConversation(request)));
     }
 
+    @PutMapping("/group/{conversationId}")
+    public ResponseEntity<Response<ConversationResponse>> updateGroupInfo(
+            @PathVariable Long conversationId,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) org.springframework.web.multipart.MultipartFile avatar) {
+        return ResponseEntity.ok(Response.ok(conversationService.updateGroupInfo(conversationId, name, avatar)));
+    }
+
     @PostMapping("/{conversationId}/members/{userId}")
     public ResponseEntity<Response<ConversationResponse>> addMember(
             @PathVariable Long conversationId,

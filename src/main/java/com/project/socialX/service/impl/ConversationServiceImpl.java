@@ -14,6 +14,8 @@ import com.project.socialX.service.dto.Chat.ConversationResponse;
 import com.project.socialX.service.dto.Chat.CreateGroupRequest;
 import com.project.socialX.service.mapper.ChatMapper;
 import com.project.socialX.web.rest.errors.BadRequestException;
+import com.project.socialX.intergration.MinioChannel;
+import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,7 @@ public class ConversationServiceImpl implements ConversationService {
     private final ConversationParticipantRepository participantRepository;
     private final UserRepository userRepository;
     private final ChatMapper chatMapper;
+    private final MinioChannel minioChannel;
 
     private User currentUser() {
         String email = SecurityUtils.getCurrentUserLogin()
@@ -102,7 +105,8 @@ public class ConversationServiceImpl implements ConversationService {
                 .conversation(conversation).user(owner).role(ParticipantRole.ADMIN).build());
 
         for (Long id : request.getParticipantIds()) {
-            if (id.equals(owner.getId())) continue;
+            if (id.equals(owner.getId()))
+                continue;
             User user = userRepository.findById(id).orElse(null);
             if (user != null) {
                 participants.add(ConversationParticipant.builder()
@@ -165,7 +169,8 @@ public class ConversationServiceImpl implements ConversationService {
                 .findByConversationIdAndUserId(conversationId, currentUser.getId())
                 .orElseThrow(() -> new BadRequestException("You are not a member of this conversation"));
 
-        // ADMIN có thể kick bất kỳ ai, MEMBER chỉ có thể rời nhóm (tự remove chính mình)
+        // ADMIN có thể kick bất kỳ ai, MEMBER chỉ có thể rời nhóm (tự remove chính
+        // mình)
         if (currentParticipant.getRole() != ParticipantRole.ADMIN && !currentUser.getId().equals(userId)) {
             throw new BadRequestException("Only admin can remove other members");
         }
@@ -175,6 +180,34 @@ public class ConversationServiceImpl implements ConversationService {
                 .orElseThrow(() -> new BadRequestException("User is not a member of this conversation"));
 
         participantRepository.delete(target);
+    }
+
+    @Override
+    @Transactional
+    public ConversationResponse updateGroupInfo(Long conversationId, String name, MultipartFile avatar) {
+        User currentUser = currentUser();
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new BadRequestException("Conversation not found"));
+
+        if (conversation.getType() != ConversationType.GROUP) {
+            throw new BadRequestException("Cannot update info for a direct conversation");
+        }
+
+        // Kiểm tra quyền: phải là thành viên
+        participantRepository.findByConversationIdAndUserId(conversationId, currentUser.getId())
+                .orElseThrow(() -> new BadRequestException("You are not a member of this conversation"));
+
+        if (name != null && !name.trim().isEmpty()) {
+            conversation.setName(name);
+        }
+
+        if (avatar != null && !avatar.isEmpty()) {
+            String avatarUrl = minioChannel.upload(avatar);
+            conversation.setAvatarUrl(avatarUrl);
+        }
+
+        conversation = conversationRepository.save(conversation);
+        return buildConversationResponse(conversation, currentUser);
     }
 
     // === Helper methods ===

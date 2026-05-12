@@ -53,7 +53,8 @@ public class CommentServiceImpl implements CommentService {
 
         if (request.getParentId() != null) {
             PostComment parent = postCommentRepository.findById(request.getParentId())
-                    .orElseThrow(() -> new BadRequestException("Parent comment not found with id: " + request.getParentId()));
+                    .orElseThrow(() -> new BadRequestException(
+                            "Parent comment not found with id: " + request.getParentId()));
             postComment.setParentComment(parent);
         }
 
@@ -97,7 +98,7 @@ public class CommentServiceImpl implements CommentService {
 
         Post post = postComment.getPost();
         postCommentRepository.delete(postComment);
-        
+
         // Giảm số lượng comment
         post.setCommentCount(Math.max(0, post.getCommentCount() - 1));
         postRepository.save(post);
@@ -106,7 +107,8 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional(readOnly = true)
     public PagingResponse<CommentResponse> getCommentsByPost(Long postId, PagingRequest pagingRequest) {
-        Page<PostComment> commentPage = postCommentRepository.findByPostIdAndParentCommentIsNull(postId, pagingRequest.pageable());
+        Page<PostComment> commentPage = postCommentRepository.findByPostIdAndParentCommentIsNull(postId,
+                pagingRequest.pageable());
         Page<CommentResponse> responsePage = commentPage.map(comment -> {
             CommentResponse res = commentMapper.toResponse(comment);
             res.setReplyCount((long) postCommentRepository.findByParentCommentId(comment.getId()).size());

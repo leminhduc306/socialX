@@ -11,4 +11,5 @@ public interface ConversationService {
     ConversationResponse createGroupConversation(CreateGroupRequest request);
     ConversationResponse addMember(Long conversationId, Long userId);
     void removeMember(Long conversationId, Long userId);
+    ConversationResponse updateGroupInfo(Long conversationId, String name, org.springframework.web.multipart.MultipartFile avatar);
 }
